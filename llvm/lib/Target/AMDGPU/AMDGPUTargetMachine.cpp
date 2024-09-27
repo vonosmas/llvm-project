@@ -1628,6 +1628,21 @@ bool GCNTargetMachine::parseMachineFunctionInfo(
     MFI->reserveWWMRegister(ParsedReg);
   }
 
+  auto setRegisterFlags = [&](const VRegInfo &Info) {
+    for (const auto &Flag : Info.Flags) {
+      MFI->setFlag(Info.VReg, Flag);
+    }
+  };
+
+  for (const auto &P : PFS.VRegInfosNamed) {
+    const VRegInfo &Info = *P.second;
+    setRegisterFlags(Info);
+  }
+  for (const auto &P : PFS.VRegInfos) {
+    const VRegInfo &Info = *P.second;
+    setRegisterFlags(Info);
+  }
+
   auto parseAndCheckArgument = [&](const std::optional<yaml::SIArgument> &A,
                                    const TargetRegisterClass &RC,
                                    ArgDescriptor &Arg, unsigned UserSGPRs,
