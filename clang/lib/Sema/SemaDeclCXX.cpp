@@ -491,6 +491,9 @@ bool Sema::MergeCXXFunctionDecl(FunctionDecl *New, FunctionDecl *Old,
       continue;
     }
 
+    if (PrevForDefaultArgs->getPrimaryTemplate() != New->getPrimaryTemplate())
+      continue;
+
     // We found the right previous declaration.
     break;
   }

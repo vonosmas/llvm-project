@@ -9272,16 +9272,19 @@ bool Sema::CheckFunctionTemplateSpecialization(
     MarkUnusedFileScopedDecl(Specialization);
   }
 
-  // Turn the given function declaration into a function template
-  // specialization, with the template arguments from the previous
-  // specialization.
-  // Take copies of (semantic and syntactic) template argument lists.
-  TemplateArgumentList *TemplArgs = TemplateArgumentList::CreateCopy(
-      Context, Specialization->getTemplateSpecializationArgs()->asArray());
-  FD->setFunctionTemplateSpecialization(
-      Specialization->getPrimaryTemplate(), TemplArgs, /*InsertPos=*/nullptr,
-      SpecInfo->getTemplateSpecializationKind(),
-      ExplicitTemplateArgs ? &ConvertedTemplateArgs[Specialization] : nullptr);
+  if (FD != Specialization) {
+    // Turn the given function declaration into a function template
+    // specialization, with the template arguments from the previous
+    // specialization.
+    // Take copies of (semantic and syntactic) template argument lists.
+    TemplateArgumentList *TemplArgs = TemplateArgumentList::CreateCopy(
+        Context, Specialization->getTemplateSpecializationArgs()->asArray());
+    FD->setFunctionTemplateSpecialization(
+        Specialization->getPrimaryTemplate(), TemplArgs, /*InsertPos=*/nullptr,
+        SpecInfo->getTemplateSpecializationKind(),
+        ExplicitTemplateArgs ? &ConvertedTemplateArgs[Specialization]
+                             : nullptr);
+  }
 
   // A function template specialization inherits the target attributes
   // of its template.  (We require the attributes explicitly in the

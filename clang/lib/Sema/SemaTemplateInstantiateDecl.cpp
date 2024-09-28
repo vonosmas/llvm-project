@@ -2136,6 +2136,7 @@ static QualType adjustFunctionTypeForInstantiation(ASTContext &Context,
 Decl *TemplateDeclInstantiator::VisitFunctionDecl(
     FunctionDecl *D, TemplateParameterList *TemplateParams,
     RewriteKind FunctionRewriteKind) {
+  FunctionDecl *PrevFunc = nullptr;
   // Check whether there is already a function template specialization for
   // this declaration.
   FunctionTemplateDecl *FunctionTemplate = D->getDescribedFunctionTemplate();
@@ -2146,9 +2147,15 @@ Decl *TemplateDeclInstantiator::VisitFunctionDecl(
     FunctionDecl *SpecFunc
       = FunctionTemplate->findSpecialization(Innermost, InsertPos);
 
-    // If we already have a function template specialization, return it.
-    if (SpecFunc)
-      return SpecFunc;
+    if (SpecFunc) {
+      if (!SpecFunc->isTemplateInstantiation())
+        return SpecFunc;
+
+      for (auto *Redecl : SpecFunc->redecls())
+        if (Redecl->getPrimaryTemplate() == FunctionTemplate)
+          return Redecl;
+    }
+    PrevFunc = SpecFunc;
   }
 
   bool isFriend;
@@ -2342,6 +2349,8 @@ Decl *TemplateDeclInstantiator::VisitFunctionDecl(
                              : Sema::LookupOrdinaryName,
       D->isLocalExternDecl() ? RedeclarationKind::ForExternalRedeclaration
                              : SemaRef.forRedeclarationInCurContext());
+  if (PrevFunc)
+    Previous.addDecl(PrevFunc);
 
   if (DependentFunctionTemplateSpecializationInfo *DFTSI =
           D->getDependentSpecializationInfo()) {

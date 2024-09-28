@@ -3150,7 +3150,13 @@ void Sema::mergeDeclAttributes(NamedDecl *New, Decl *Old,
 
   // Re-declaration cannot add abi_tag's.
   if (const auto *NewAbiTagAttr = New->getAttr<AbiTagAttr>()) {
-    if (const auto *OldAbiTagAttr = Old->getAttr<AbiTagAttr>()) {
+    const AbiTagAttr *OldAbiTagAttr = nullptr;
+    for (auto *D = Old; D; D = D->getPreviousDecl()) {
+      OldAbiTagAttr = D->getAttr<AbiTagAttr>();
+      if (OldAbiTagAttr)
+        break;
+    }
+    if (OldAbiTagAttr) {
       for (const auto &NewTag : NewAbiTagAttr->tags()) {
         if (!llvm::is_contained(OldAbiTagAttr->tags(), NewTag)) {
           Diag(NewAbiTagAttr->getLocation(),
@@ -12021,11 +12027,12 @@ bool Sema::CheckFunctionDeclaration(Scope *S, FunctionDecl *NewFD,
 
     } else {
       if (shouldLinkDependentDeclWithPrevious(NewFD, OldDecl)) {
-        auto *OldFD = cast<FunctionDecl>(OldDecl);
-        // This needs to happen first so that 'inline' propagates.
-        NewFD->setPreviousDeclaration(OldFD);
-        if (NewFD->isCXXClassMember())
-          NewFD->setAccess(OldFD->getAccess());
+        if (auto *OldFD = cast<FunctionDecl>(OldDecl); OldFD != NewFD) {
+          // This needs to happen first so that 'inline' propagates.
+          NewFD->setPreviousDeclaration(OldFD);
+          if (NewFD->isCXXClassMember())
+            NewFD->setAccess(OldFD->getAccess());
+        }
       }
     }
   } else if (!getLangOpts().CPlusPlus && MayNeedOverloadableChecks &&
